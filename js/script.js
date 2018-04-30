@@ -111,10 +111,10 @@ var add_points = function(points, ndt, ndf, c) {
 }
 
 var add_harmonic = function(m, l, ndt, ndf, cp, cm) {
-	var p_real = generate_points(m, l, ndt, ndf, true);
-	var p_im = generate_points(m, l, ndt, ndf, false);
+	var p_pos = generate_points(m, l, ndt, ndf, true);
+	var p_neg = generate_points(m, l, ndt, ndf, false);
 	add_points(p_real, ndt, ndf, cp);
-	add_points(p_im, ndt, ndf, cm);
+	//dd_points(p_im, ndt, ndf, cm);
 }
 
 //------------------------------
@@ -124,7 +124,7 @@ var add_harmonic = function(m, l, ndt, ndf, cp, cm) {
 var init = function() {
 	//camera
 	camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-	camera.position.z = 2;
+	camera.position.x = 2;
 	controls = new THREE.TrackballControls(camera);
 	controls.rotateSpeed = 1;
 	controls.zoomSpeed = 1;
