@@ -21,12 +21,6 @@ var sph_to_car = function(r,phi,theta) {
 	return [x, y, z];
 }
 
-var test = function(x,y,z) {
-	[p,q,r] = car_to_sph(x,y,z);
-	[a,b,c] = sph_to_car(p,q,r);
-	console.log(a,b,c);
-}
-
 //------------------------------
 //   FUNCTION GENERATORS
 //------------------------------
@@ -80,7 +74,7 @@ var add_triangle = function(p0, p1, p2, c) {
 	scene.add(line);
 }
 
-var generate_points = function(m, l, ndt, ndf, isReal) {
+var generate_points = function(m, l, ndt, ndf, isPos) {
 	//ndt = number of dtheta in the full pi rotation
 	//ndf = number of dphi in the full pi rotation
 	var harm = math.parse(Y(m,l));
@@ -92,8 +86,8 @@ var generate_points = function(m, l, ndt, ndf, isReal) {
 		var fi = idf*df;
 		for (var idt=0; idt<ndt; idt++) {
 			var ti = idt*dt;
-			isReal ? (r = harm.eval({u:Math.cos(ti), f:fi}).re) : (r = harm.eval({u:Math.cos(ti), f:fi}).im);
-			console.log(harm.toString());
+			//isReal ? (r = math.re(harm.eval({u:Math.cos(ti), f:fi}))) : (r = math.im(harm.eval({u:Math.cos(ti), f:fi})));
+			isPos ? (r = math.re(harm.eval({u:Math.cos(ti), f:fi}))) : (r = -1*math.re(harm.eval({u:Math.cos(ti), f:fi})));
 			slice.push(sph_to_car(r, fi, ti));
 		}
 		points.push(slice);
@@ -114,14 +108,13 @@ var add_points = function(points, ndt, ndf, c) {
 	sj = points[0];
 	for (var i=0; i<ndt-1; i++) {add_triangle(si[i], si[i+1], sj[i], c);} //upper triangle
 	for (var i=1; i<ndt; i++) {add_triangle(si[i], sj[i], sj[i-1], c);} //lower triangle
-	console.log(sj[ndt-1]);
 }
 
-var add_harmonic = function(m, l, ndt, ndf, cr, ci) {
+var add_harmonic = function(m, l, ndt, ndf, cp, cm) {
 	var p_real = generate_points(m, l, ndt, ndf, true);
 	var p_im = generate_points(m, l, ndt, ndf, false);
-	add_points(p_real, ndt, ndf, cr);
-	add_points(p_im, ndt, ndf, ci);
+	add_points(p_real, ndt, ndf, cp);
+	add_points(p_im, ndt, ndf, cm);
 }
 
 //------------------------------
@@ -197,3 +190,14 @@ var render = function() {
 
 init();
 animate();
+
+
+var t1 = function(x,y,z) {
+	[p,q,r] = car_to_sph(x,y,z);
+	[a,b,c] = sph_to_car(p,q,r);
+	console.log(a,b,c);
+}
+
+var t2 = function(m,l) {
+	add_harmonic(m, l, 20, 20, 0xdd0000, 0x0000dd);
+}
