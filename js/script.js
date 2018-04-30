@@ -27,6 +27,7 @@ var test = function(x,y,z) {
 
 var fact = function(n) {
 	if (n==0) {return 1;}
+	if (n<=50) {return Array(n).fill().map((_, i) => i+1).reduce(function(a,_){return a*_},1);}
 	var k = Math.sqrt(2*Math.PI*n)*(n/Math.E)**n;
 	return Math.round(k*(1 + 1/(12*n) + 1/(288*n**2) - 139/(51840*n**3)));
 }
@@ -39,13 +40,36 @@ var P = function(m, l) {
 	for (var i=0; i<l+a; i++) {
 		f = math.derivative(f, "u").toString();
 	}
-	return math.simplify(coeff+g+f+")");
+	return math.simplify(coeff+g+f+")").toString();
 }
 
 var Y = function(m, l) {
 	var a = Math.abs(m);
 	var eta = -1;
 	if (m<0 || m%2==0) {eta = 1;}
+	var k1 = (2*l+1)*fact(l-a);
+	var k2 = fact(l+a);
+	var y = eta+"*sqrt("+k1+"/(4*pi*"+k2+"))*"+P(m,l)+"*e^("+m+"*i*f)";
+	return math.simplify(y).toString();
+}
+
+var generate_points = function(m, l, ndt, ndf) {
+	//ndt = number of dtheta in the full pi rotation
+	//ndf = number of dphi in the full pi rotation
+	var harm = math.parse(Y(m,l));
+	var dt = Math.PI/ndt;
+	var df = 2*Math.PI/ndf;
+	var points = [];
+	for (var idf=0; idf<ndf; idf++) {
+		var slice = [];
+		var fi = idf*df;
+		for (var idt=0; idt<ndt; idt++) {
+			var ti = idt*dt;
+			slice.push(harm.eval({u:Math.cos(ti), f:fi}));
+		}
+		points.push(slice);
+	}
+	return points;
 }
 
 var init = function() {
@@ -64,14 +88,14 @@ var init = function() {
 	// world
 	scene = new THREE.Scene();
 
-	var geometry = new THREE.SphereGeometry(2, 10, 10);
+	var geometry = new THREE.SphereGeometry(2, 100, 100);
 	var material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
 	cube = new THREE.Mesh(geometry, material);
 	scene.add(cube);
 
 	var edges = new THREE.EdgesGeometry(geometry);
 	line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-	//scene.add(line);
+	scene.add(line);
 
 
 	var geom = new THREE.Geometry(); 
@@ -96,7 +120,7 @@ var init = function() {
 	var light = new THREE.DirectionalLight( 0xffffff );
 	light.position.set(-1, -1, -1);
 	scene.add( light );
-	var light = new THREE.AmbientLight( 0x222222 );
+	var light = new THREE.AmbientLight( 0xaaaaaa );
 	scene.add(light);
 
 	// renderer
