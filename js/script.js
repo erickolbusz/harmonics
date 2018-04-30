@@ -1,6 +1,10 @@
 var camera, controls, scene, renderer;
 var cube, line;
 
+//------------------------------
+//   COORDINATE TRANSFORMS
+//------------------------------
+
 var car_to_sph = function(x,y,z) {
 	r = Math.sqrt(x**2 + y**2 + z**2);
 	phi = Math.atan(y/x);
@@ -23,6 +27,8 @@ var test = function(x,y,z) {
 	console.log(a,b,c);
 }
 
+//------------------------------
+//   FUNCTION GENERATORS
 //------------------------------
 
 var fact = function(n) {
@@ -53,7 +59,28 @@ var Y = function(m, l) {
 	return math.simplify(y).toString();
 }
 
-var generate_points = function(m, l, ndt, ndf) {
+//------------------------------
+//   MESH CREATION
+//------------------------------
+
+var add_triangle = function(p0, p1, p2, c) {
+	var g = new THREE.Geometry(); 
+	var v1 = new THREE.Vector3(p0[0], p0[1], p0[2]);
+	var v2 = new THREE.Vector3(p1[0], p1[1], p1[2]);
+	var v3 = new THREE.Vector3(p2[0], p2[1], p2[2]);
+	g.vertices.push(v1);
+	g.vertices.push(v2);
+	g.vertices.push(v3);
+	g.faces.push(new THREE.Face3(0, 1, 2));
+	var tri = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: c }));
+	scene.add(tri);
+
+	var edges = new THREE.EdgesGeometry(g);
+	line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+	scene.add(line);
+}
+
+var generate_points = function(m, l, ndt, ndf, isReal) {
 	//ndt = number of dtheta in the full pi rotation
 	//ndf = number of dphi in the full pi rotation
 	var harm = math.parse(Y(m,l));
@@ -65,17 +92,46 @@ var generate_points = function(m, l, ndt, ndf) {
 		var fi = idf*df;
 		for (var idt=0; idt<ndt; idt++) {
 			var ti = idt*dt;
-			slice.push(harm.eval({u:Math.cos(ti), f:fi}));
+			isReal ? (r = harm.eval({u:Math.cos(ti), f:fi}).re) : (r = harm.eval({u:Math.cos(ti), f:fi}).im);
+			console.log(harm.toString());
+			slice.push(sph_to_car(r, fi, ti));
 		}
 		points.push(slice);
 	}
 	return points;
 }
 
+var add_points = function(points, ndt, ndf, c) {
+	var si, sj;
+	for (var idf=0; idf<ndf-1; idf++) {
+		si = points[idf];
+		sj = points[idf+1];
+		for (var i=0; i<ndt-1; i++) {add_triangle(si[i], si[i+1], sj[i], c);} //upper triangle
+		for (var i=1; i<ndt; i++) {add_triangle(si[i], sj[i], sj[i-1], c);} //lower triangle
+	}
+	//wrapping around
+	si = points[ndf-1];
+	sj = points[0];
+	for (var i=0; i<ndt-1; i++) {add_triangle(si[i], si[i+1], sj[i], c);} //upper triangle
+	for (var i=1; i<ndt; i++) {add_triangle(si[i], sj[i], sj[i-1], c);} //lower triangle
+	console.log(sj[ndt-1]);
+}
+
+var add_harmonic = function(m, l, ndt, ndf, cr, ci) {
+	var p_real = generate_points(m, l, ndt, ndf, true);
+	var p_im = generate_points(m, l, ndt, ndf, false);
+	add_points(p_real, ndt, ndf, cr);
+	add_points(p_im, ndt, ndf, ci);
+}
+
+//------------------------------
+//   WORLD HANDLING
+//------------------------------
+
 var init = function() {
 	//camera
 	camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-	camera.position.z = 5;
+	camera.position.z = 2;
 	controls = new THREE.TrackballControls(camera);
 	controls.rotateSpeed = 1;
 	controls.zoomSpeed = 1;
@@ -88,30 +144,15 @@ var init = function() {
 	// world
 	scene = new THREE.Scene();
 
-	var geometry = new THREE.SphereGeometry(2, 100, 100);
+	/*var geometry = new THREE.SphereGeometry(2, 100, 100);
 	var material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
 	cube = new THREE.Mesh(geometry, material);
 	scene.add(cube);
 
 	var edges = new THREE.EdgesGeometry(geometry);
 	line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-	scene.add(line);
+	scene.add(line);*/
 
-
-	var geom = new THREE.Geometry(); 
-	var v1 = new THREE.Vector3(0,0,10);
-	var v2 = new THREE.Vector3(0,50,10);
-	var v3 = new THREE.Vector3(50,50,10);
-	var v4 = new THREE.Vector3(80,50,10);
-
-	geom.vertices.push(v1);
-	geom.vertices.push(v2);
-	geom.vertices.push(v3);
-	geom.vertices.push(v4);
-	geom.faces.push(new THREE.Face3(0, 1, 2, 3));
-
-	var object = new THREE.Mesh(geom, new THREE.MeshPhongMaterial());
-	scene.add(object);
 
 	// lights
 	// var light = new THREE	.DirectionalLight( 0xffffff );
@@ -133,7 +174,7 @@ var init = function() {
 };
 
 var onWindowResize = function() {
-	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.aspect = window.innerWidth/window.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	controls.handleResize();
@@ -142,8 +183,6 @@ var onWindowResize = function() {
 
 var animate = function() {
 	requestAnimationFrame(animate);
-	cube.rotation.y -= 0.05;
-	line.rotation.y -= 0.05;
 	controls.update();
 	render();
 }
@@ -151,6 +190,10 @@ var animate = function() {
 var render = function() {
 	renderer.render(scene, camera);
 }
+
+//------------------------------
+//   FUNCTION CALLS
+//------------------------------
 
 init();
 animate();
