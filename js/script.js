@@ -69,9 +69,9 @@ var add_triangle = function(p0, p1, p2, c) {
 	var tri = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: c }));
 	scene.add(tri);
 
-	var edges = new THREE.EdgesGeometry(g);
-	line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-	scene.add(line);
+	//var edges = new THREE.EdgesGeometry(g);
+	//line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+	//scene.add(line);
 }
 
 var generate_points = function(m, l, ndt, ndf, isPos) {
@@ -113,8 +113,8 @@ var add_points = function(points, ndt, ndf, c) {
 var add_harmonic = function(m, l, ndt, ndf, cp, cm) {
 	var p_pos = generate_points(m, l, ndt, ndf, true);
 	var p_neg = generate_points(m, l, ndt, ndf, false);
-	add_points(p_real, ndt, ndf, cp);
-	//dd_points(p_im, ndt, ndf, cm);
+	add_points(p_pos, ndt, ndf, cp);
+	add_points(p_neg, ndt, ndf, cm);
 }
 
 //------------------------------
@@ -125,6 +125,11 @@ var init = function() {
 	//camera
 	camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 	camera.position.x = 2;
+
+	var q = new THREE.Quaternion();
+	q.setFromAxisAngle(new THREE.Vector3(0,0.6,0.8), Math.PI/4);
+	camera.applyQuaternion(q);
+
 	controls = new THREE.TrackballControls(camera);
 	controls.rotateSpeed = 1;
 	controls.zoomSpeed = 1;
@@ -137,20 +142,7 @@ var init = function() {
 	// world
 	scene = new THREE.Scene();
 
-	/*var geometry = new THREE.SphereGeometry(2, 100, 100);
-	var material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
-	cube = new THREE.Mesh(geometry, material);
-	scene.add(cube);
-
-	var edges = new THREE.EdgesGeometry(geometry);
-	line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-	scene.add(line);*/
-
-
 	// lights
-	// var light = new THREE	.DirectionalLight( 0xffffff );
-	// light.position.set( 1, 1, 1 );
-	// scene.add( light );
 	var light = new THREE.DirectionalLight( 0xffffff );
 	light.position.set(-1, -1, -1);
 	scene.add( light );
@@ -158,9 +150,10 @@ var init = function() {
 	scene.add(light);
 
 	// renderer
-	renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor( 0xffffff, 0);
 	document.body.appendChild(renderer.domElement);
 	window.addEventListener('resize', onWindowResize, false);
 	render();
@@ -199,5 +192,7 @@ var t1 = function(x,y,z) {
 }
 
 var t2 = function(m,l) {
-	add_harmonic(m, l, 20, 20, 0xdd0000, 0x0000dd);
+	add_harmonic(m, l, 15*l, 20*l, 0xdd0000, 0x0000dd);
 }
+
+t2(0,2);
